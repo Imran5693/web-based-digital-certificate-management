@@ -97,7 +97,7 @@ SQLite
 
 ### Host Machine
 
-* Windows 11
+* Windows 11/10
 
 ### Virtualization Platform
 
