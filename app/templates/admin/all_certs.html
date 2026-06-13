@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block page_title %}Certificate Management{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.admin_dashboard') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Certificate Management</li>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <div class="row align-items-center">
+    <div class="col">
+      <h1 class="h2 mb-2">Certificate Management</h1>
+      <p class="text-muted mb-0">Manage all certificates and pending CSR requests</p>
+    </div>
+    <div class="col-auto">
+      <div class="btn-group">
+        <a href="{{ url_for('certificates.admin_generate_cert') }}" class="btn btn-primary">
+          <i class="bi bi-plus-circle me-2"></i>Generate Certificate
+        </a>
+        <a href="{{ url_for('certificates.download_root_ca') }}" class="btn btn-outline-primary">
+          <i class="bi bi-download me-2"></i>Root CA
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pending CSR Requests -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card border-warning">
+      <div
+        class="card-header bg-warning bg-opacity-10 border-warning d-flex justify-content-between align-items-center py-3">
+        <h5 class="card-title mb-0 text-warning">
+          <i class="bi bi-clock-history me-2"></i>Pending CSR Requests
+          <span class="badge bg-warning text-dark ms-2">{{ csrs|length }}</span>
+        </h5>
+      </div>
+      <div class="card-body">
+        {% if csrs %}
+        <div class="table-responsive">
+          <table class="table table-hover table-sm">
+            <thead class="table-warning">
+              <tr>
+                <th>User</th>
+                <th>Common Name</th>
+                <th>Submitted</th>
+                <th>CSR Preview</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for csr in csrs %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-person-circle text-primary me-2"></i>
+                    <div>
+                      <strong class="d-block">{{ csr.user.username if csr.user else "N/A" }}</strong>
+                      <small class="text-muted">User Request</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <code class="text-dark">{{ csr.common_name }}</code>
+                </td>
+                <td>
+                  <small class="text-muted">
+                    {{ csr.created_at.strftime('%Y-%m-%d') if csr.created_at else 'N/A' }}
+                  </small>
+                </td>
+                <td>
+                  <div class="csr-preview">
+                    <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#csrContent{{ csr.id }}">
+                      <i class="bi bi-eye me-1"></i>View CSR
+                    </button>
+                    <div class="collapse mt-2" id="csrContent{{ csr.id }}">
+                      <div class="card card-body bg-light">
+                        <pre class="mb-0 small"><code class="text-dark">{{ csr_contents[csr.id] }}</code></pre>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="btn-group-vertical btn-group-sm">
+                    <a href="{{ url_for('certificates.approve_csr', cert_id=csr.id) }}" class="btn btn-success btn-sm"
+                      onclick="return confirm('Approve CSR for {{ csr.common_name }}?')">
+                      <i class="bi bi-check-lg me-1"></i>Approve
+                    </a>
+                    <form method="POST" action="{{ url_for('certificates.reject_csr', cert_id=csr.id) }}"
+                      class="d-inline">
+                      <input type="hidden" name="reason" value="Administrative rejection">
+                      <button type="submit" class="btn btn-danger btn-sm w-100"
+                        onclick="return confirm('Reject CSR for {{ csr.common_name }}?')">
+                        <i class="bi bi-x-lg me-1"></i>Reject
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-check-circle text-success display-4"></i>
+          <h5 class="text-muted mt-3">No Pending CSR Requests</h5>
+          <p class="text-muted">All certificate requests have been processed.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- All Certificates -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div
+        class="card-header bg-primary bg-opacity-10 border-primary d-flex justify-content-between align-items-center py-3">
+        <h5 class="card-title mb-0 text-primary">
+          <i class="bi bi-files me-2"></i>All Certificates
+          <span class="badge bg-primary ms-2">{{ certificates|length }}</span>
+        </h5>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-outline-primary" onclick="exportTableToCSV('certificates.csv')">
+            <i class="bi bi-download me-1"></i>Export
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        {% if certificates %}
+        <div class="table-responsive">
+          <table class="table table-hover table-sm" id="certificatesTable">
+            <thead class="table-primary">
+              <tr>
+                <th>Common Name</th>
+                <th>User</th>
+                <th>Status</th>
+                <th>Issued Date</th>
+                <th>Expiry Date</th>
+                <th>Type</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cert in certificates %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-file-earmark-certificate text-primary me-2"></i>
+                    <div>
+                      <strong class="d-block">{{ cert.common_name }}</strong>
+                      {% if cert.generated_by_admin %}
+                      <small class="text-muted">Admin Generated</small>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-secondary bg-opacity-10 text-dark">
+                    {{ cert.user.username if cert.user else "System" }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge 
+                    {% if cert.status == 'Issued' %}bg-success
+                    {% elif cert.status == 'Pending' %}bg-warning
+                    {% elif cert.status == 'Revoked' %}bg-danger
+                    {% elif cert.status == 'Renewed' %}bg-info
+                    {% else %}bg-secondary{% endif %}">
+                    {{ cert.status }}
+                  </span>
+                </td>
+                <td>
+                  {% if cert.issued_at %}
+                  <small class="text-muted">{{ cert.issued_at.strftime('%Y-%m-%d') }}</small>
+                  {% else %}-{% endif %}
+                </td>
+                <td>
+                  {% if cert.expiry_date %}
+                  {% set is_expired = cert.expiry_date < now %} <small
+                    class="{% if is_expired %}text-danger{% else %}text-muted{% endif %}">
+                    {{ cert.expiry_date.strftime('%Y-%m-%d') }}
+                    </small>
+                    {% if is_expired %}
+                    <br><span class="badge bg-danger mt-1">Expired</span>
+                    {% endif %}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+
+                <td>
+                  {% if cert.generated_by_admin %}
+                  <span class="badge bg-primary">Admin</span>
+                  {% else %}
+                  <span class="badge bg-secondary">User</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm" role="group">
+
+                    <!-- View -->
+                    <a href="{{ url_for('certificates.view_certificate', cert_id=cert.id) }}"
+                      class="btn btn-outline-info" title="View Certificate">
+                      <i class="bi bi-eye"></i>
+                    </a>
+
+                    {% if cert.certificate_file %}
+                    <!-- Download -->
+                    <a href="{{ url_for('certificates.download_crt', cert_id=cert.id) }}"
+                      class="btn btn-outline-primary" title="Download Certificate">
+                      <i class="bi bi-file-earmark-arrow-down"></i>
+                    </a>
+                    <a href="{{ url_for('certificates.download_key', cert_id=cert.id) }}"
+                      class="btn btn-outline-secondary" title="Download Private Key">
+                      <i class="bi bi-key"></i>
+                    </a>
+                    {% endif %}
+
+                    {% if cert.status != 'Revoked' %}
+                    <!-- Revoke button -->
+                    <form method="POST" action="{{ url_for('certificates.revoke_certificate', cert_id=cert.id) }}"
+                      class="d-inline">
+                      <button type="submit" class="btn btn-outline-danger" title="Revoke Certificate"
+                        onclick="return confirm('Revoke certificate {{ cert.common_name }}?')">
+                        <i class="bi bi-slash-circle"></i>
+                      </button>
+                    </form>
+
+                    <!-- Renew button only for expired certificates -->
+                    {% if is_expired %}
+                    <form method="POST" action="{{ url_for('certificates.renew_certificate', cert_id=cert.id) }}"
+                      class="d-inline">
+                      <button type="submit" class="btn btn-outline-warning" title="Renew Certificate"
+                        onclick="return confirm('Renew certificate {{ cert.common_name }}?')">
+                        <i class="bi bi-arrow-repeat"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                    {% endif %}
+                  </div>
+                </td>
+
+
+
+
+
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-file-earmark-excel text-muted display-4"></i>
+          <h5 class="text-muted mt-3">No Certificates Found</h5>
+          <p class="text-muted">Generate your first certificate to get started.</p>
+          <a href="{{ url_for('certificates.admin_generate_cert') }}" class="btn btn-primary mt-2">
+            <i class="bi bi-plus-circle me-2"></i>Generate Certificate
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Minimal Custom CSS -->
+
+<script>
+  function exportTableToCSV(filename) {
+    var csv = [];
+    var rows = document.querySelectorAll("#certificatesTable tr");
+
+    for (var i = 0; i < rows.length; i++) {
+      var row = [], cols = rows[i].querySelectorAll("td, th");
+
+      for (var j = 0; j < cols.length; j++) {
+        // Remove action buttons from export
+        if (j !== cols.length - 1) {
+          row.push(cols[j].innerText.replace(/,/g, ""));
+        }
+      }
+
+      csv.push(row.join(","));
+    }
+
+    // Download CSV file
+    var csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+    var downloadLink = document.createElement("a");
+    downloadLink.download = filename;
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+    downloadLink.style.display = "none";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  }
+
+  // Auto-collapse CSR content when another is opened
+  document.addEventListener('DOMContentLoaded', function () {
+    var csrCollapses = document.querySelectorAll('.csr-preview .collapse');
+    csrCollapses.forEach(function (collapse) {
+      collapse.addEventListener('show.bs.collapse', function () {
+        csrCollapses.forEach(function (otherCollapse) {
+          if (otherCollapse !== collapse && otherCollapse.classList.contains('show')) {
+            bootstrap.Collapse.getInstance(otherCollapse).hide();
+          }
+        });
+      });
+    });
+  });
+
+  // Client-side expiry check as fallback
+  document.addEventListener('DOMContentLoaded', function () {
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelectorAll('td small.text-muted').forEach(function (el) {
+      const dateText = el.textContent.trim();
+      if (dateText && dateText !== '-') {
+        if (dateText < today) {
+          el.classList.remove('text-muted');
+          el.classList.add('text-danger');
+          // Add expired badge if not already present
+          if (!el.nextElementSibling || !el.nextElementSibling.classList.contains('badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-danger mt-1';
+            badge.textContent = 'Expired';
+            el.parentNode.appendChild(badge);
+          }
+        }
+      }
+    });
+  });
+</script>
+
+{% endblock %}

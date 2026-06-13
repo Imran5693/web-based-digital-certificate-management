@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block page_title %}Audit Logs{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.admin_dashboard') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Audit Logs</li>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <h1 class="h2 mb-2">Audit Logs</h1>
+            <p class="text-muted mb-0">Track all certificate and user actions</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" onclick="exportTableToCSV('audit_logs.csv')">
+                <i class="bi bi-download me-2"></i>Export CSV
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        {% if actions %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm" id="auditTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Reason</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for act in actions %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ act.user.username if act.user else 'System' }}</td>
+                        <td>{{ act.action_type|capitalize }}</td>
+                        <td>{{ act.target_name or '-' }}</td>
+                        <td>{{ act.action_reason or '-' }}</td>
+                        <td>{{ act.action_timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="bi bi-exclamation-circle display-4 text-muted"></i>
+            <h5 class="text-muted mt-3">No actions logged yet</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Simple CSV export (reuse your existing export function if available)
+function exportTableToCSV(filename) {
+    var csv = [];
+    var rows = document.querySelectorAll("#auditTable tr");
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = [], cols = rows[i].querySelectorAll("td, th");
+        for (var j = 0; j < cols.length; j++)
+            row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"');
+        csv.push(row.join(","));
+    }
+
+    var csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+    var downloadLink = document.createElement("a");
+    downloadLink.download = filename;
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+    downloadLink.style.display = "none";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+}
+</script>
+{% endblock %}

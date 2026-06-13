@@ -1,0 +1,8 @@
+sequenceDiagram
+    participant User
+    participant UI
+    participant Keystone
+    User->>UI: Enter Credentials
+    UI->>Keystone: Validate Login
+    Keystone-->>UI: Token/Status
+    UI-->>User: Access Granted

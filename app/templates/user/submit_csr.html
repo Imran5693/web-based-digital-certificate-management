@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-send-plus me-2"></i>Submit Certificate Signing Request
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('certificates.submit_csr') }}">
+                    <div class="mb-3">
+                        <label for="common_name" class="form-label">Common Name</label>
+                        <input type="text" class="form-control" id="common_name" name="common_name" 
+                               placeholder="e.g., server.example.com" required autofocus>
+                        <div class="form-text">
+                            Enter the hostname for your server or service.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="csr_content" class="form-label">CSR Content</label>
+                        <textarea class="form-control" id="csr_content" name="csr_content" 
+                                  rows="10" placeholder="Paste your CSR content here..." required></textarea>
+                        <div class="form-text">
+                            Paste the complete CSR content including BEGIN and END CERTIFICATE REQUEST lines.
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('certificates.user_certificates') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Certificates
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send-check"></i> Submit CSR
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

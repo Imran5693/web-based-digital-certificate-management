@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Welcome, {{ username }}</h2>
+    <div class="btn-group">
+        <a href="{{ url_for('certificates.submit_csr') }}" class="btn btn-primary">
+            <i class="bi bi-send-plus"></i> Submit CSR
+        </a>
+        <a href="{{ url_for('certificates.download_root_ca') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-download"></i> Root CA
+        </a>
+    </div>
+</div>
+
+<!-- Certificate Summary -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-file-earmark-certificate display-6 text-primary mb-2"></i>
+                <h3>{{ certs|length }}</h3>
+                <p class="text-muted">Total Certificates</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-check-circle display-6 text-success mb-2"></i>
+                <h3>{{ certs|selectattr('status', 'equalto', 'Issued')|list|length }}</h3>
+                <p class="text-muted">Active Certificates</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-clock-history display-6 text-warning mb-2"></i>
+                <h3>{{ certs|selectattr('status', 'equalto', 'Pending')|list|length }}</h3>
+                <p class="text-muted">Pending Requests</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-download display-6 text-info mb-2"></i>
+                <h3>{{ certs|selectattr('status', 'equalto', 'Issued')|list|length }}</h3>
+                <p class="text-muted">Ready to Download</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- My Certificates Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">My Certificates</h5>
+        <a href="{{ url_for('certificates.submit_csr') }}" class="btn btn-sm btn-primary">New CSR</a>
+    </div>
+    <div class="card-body">
+        {% if certs %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Common Name</th>
+                        <th>Status</th>
+                        <th>Issued Date</th>
+                        <th>Expiry Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cert in certs %}
+                    <tr>
+                        <td>{{ cert.common_name }}</td>
+                        <td>
+                            <span class="badge {% if cert.status == 'Issued' %}bg-success{% elif cert.status == 'Pending' %}bg-warning{% elif cert.status == 'Revoked' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ cert.status }}
+                            </span>
+                        </td>
+                        <td>{{ cert.issued_at.strftime('%Y-%m-%d') if cert.issued_at else '-' }}</td>
+                        <td>{{ cert.expiry_date.strftime('%Y-%m-%d') if cert.expiry_date else '-' }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                {% if cert.status == 'Issued' %}
+                                <a href="{{ url_for('certificates.download_crt', cert_id=cert.id) }}" class="btn btn-outline-primary">Download CRT</a>
+                                <a href="{{ url_for('certificates.download_key', cert_id=cert.id) }}" class="btn btn-outline-secondary">Download KEY</a>
+                                {% elif cert.status == 'Pending' %}
+                                <span class="text-muted">Waiting for approval</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="bi bi-file-earmark-plus display-4 text-muted"></i>
+            <h5 class="text-muted mt-3">No Certificates Found</h5>
+            <p class="text-muted">You haven't submitted any certificate requests yet.</p>
+            <a href="{{ url_for('certificates.submit_csr') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-send-plus"></i> Submit Your First CSR
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

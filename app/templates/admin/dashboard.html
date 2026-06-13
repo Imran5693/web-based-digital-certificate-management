@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <h1 class="h2 mb-2">Admin Dashboard</h1>
+            <p class="text-muted mb-0">Certificate Authority Management Overview</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('certificates.admin_generate_cert') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Generate Certificate
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <i class="bi bi-people"></i>
+                <h3>{{ total_users }}</h3>
+                <p class="mb-0">Total Users</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <i class="bi bi-file-earmark-certificate"></i>
+                <h3>{{ total_certs }}</h3>
+                <p class="mb-0">Total Certificates</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <i class="bi bi-clock-history"></i>
+                <h3>{{ pending_csrs }}</h3>
+                <p class="mb-0">Pending CSRs</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <i class="bi bi-gear"></i>
+                <h3>{{ generated_certs }}</h3>
+                <p class="mb-0">Admin Generated</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Recent Certificates -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>Recent Certificates
+                </h5>
+                <a href="{{ url_for('certificates.admin_all_certs') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_certs %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Common Name</th>
+                                <th>User</th>
+                                <th>Status</th>
+                                <th>Issued</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cert in recent_certs %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-file-earmark-certificate text-primary me-2"></i>
+                                        <strong>{{ cert.common_name }}</strong>
+                                    </div>
+                                </td>
+                                <td>{{ cert.user.username if cert.user else "System" }}</td>
+                                <td>
+                                    <span class="badge {% if cert.status == 'Issued' %}bg-success{% elif cert.status == 'Pending' %}bg-warning{% elif cert.status == 'Revoked' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                        {{ cert.status }}
+                                    </span>
+                                </td>
+                                <td>{{ cert.issued_at.strftime('%Y-%m-%d') if cert.issued_at else '-' }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('certificates.view_certificate', cert_id=cert.id) }}" class="btn btn-outline-info">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if cert.status == 'Issued' %}
+                                        <a href="{{ url_for('certificates.download_crt', cert_id=cert.id) }}" class="btn btn-outline-primary">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-file-earmark-x display-4 text-muted"></i>
+                    <h5 class="text-muted mt-3">No certificates found</h5>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="{{ url_for('certificates.admin_all_certs') }}" class="btn btn-outline-primary text-start">
+                        <i class="bi bi-files me-2"></i>Manage Certificates
+                    </a>
+                    <a href="{{ url_for('auth.user_management') }}" class="btn btn-outline-success text-start">
+                        <i class="bi bi-people me-2"></i>User Management
+                    </a>
+                    <a href="{{ url_for('certificates.admin_generate_cert') }}" class="btn btn-outline-info text-start">
+                        <i class="bi bi-plus-circle me-2"></i>Generate Certificate
+                    </a>
+                    <a href="{{ url_for('certificates.download_root_ca') }}" class="btn btn-outline-secondary text-start">
+                        <i class="bi bi-download me-2"></i>Download Root CA
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+# Core Flask
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Login==0.6.3          # 🆕 NEW - Enhanced authentication
+
+# Your existing dependencies
+python-dotenv==1.0.0
+ldap3==2.9.1
+cryptography==41.0.7
+
+# Security enhancements
+Werkzeug==2.3.7
+Flask-Limiter==3.3.0        # 🆕 NEW - Rate limiting
+Flask-WTF==1.1.1           # 🆕 NEW - Form security
+
+# API Support
+Flask-RESTful==0.3.10      # 🆕 NEW - REST API
+
+# Monitoring & Utilities
+requests==2.31.0
+pyotp==2.8.0               # 🆕 NEW - 2FA support
+qrcode==7.4.2              # 🆕 NEW - 2FA QR codes
+
+# Deployment
+gunicorn==21.2.0           # 🆕 NEW - Production server
